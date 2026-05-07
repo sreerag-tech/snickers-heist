@@ -101,6 +101,18 @@ function App() {
   const [notification, setNotification] = useState("ശ്രീരാഗിന് സ്നിക്കേഴ്സ് നൽകൂ!");
   const keysRef = useRef<Record<string, boolean>>({});
   const lastEnemyHitRef = useRef(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const touchDirRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
 
   useEffect(() => {
     gameStartedRef.current = gameStarted;
@@ -121,6 +133,38 @@ function App() {
       localStorage.setItem("snickerBestScore", score.toString());
     }
   }, [score, bestScore]);
+
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      touchDirRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!gameStartedRef.current) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchDirRef.current.x;
+      const dy = touch.clientY - touchDirRef.current.y;
+      const threshold = 20;
+      keysRef.current.arrowleft = dx < -threshold;
+      keysRef.current.arrowright = dx > threshold;
+      keysRef.current.arrowup = dy < -threshold;
+      keysRef.current.arrowdown = dy > threshold;
+    };
+
+    const handleTouchEnd = () => {
+      keysRef.current = {};
+    };
+
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -413,22 +457,19 @@ function App() {
       <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 10% 10%, rgba(239, 68, 68, 0.08), transparent 24%), radial-gradient(circle at 90% 20%, rgba(59, 130, 246, 0.08), transparent 18%)" }} />
       <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "52px 52px" }} />
 
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "18px 38px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 100, background: "rgba(0,0,0,0.54)", backdropFilter: "blur(10px)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <span style={{ fontSize: "38px" }}>🍫</span>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: isMobile ? "12px 16px" : "18px 38px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 100, background: "rgba(0,0,0,0.54)", backdropFilter: "blur(10px)", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "12px" : "0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontSize: isMobile ? "28px" : "38px" }}>🍫</span>
           <div>
-            <div style={{ fontSize: "22px", letterSpacing: "0.04em" }}>SNICKER HEIST</div>
-            <div style={{ fontSize: "13px", opacity: 0.8 }}>Help Sreerag collect the treats!</div>
+            <div style={{ fontSize: isMobile ? "16px" : "22px", letterSpacing: "0.04em", fontWeight: "700" }}>SNICKER HEIST</div>
+            <div style={{ fontSize: isMobile ? "11px" : "13px", opacity: 0.8 }}>Save Sreerag</div>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, auto)", gap: "26px", alignItems: "center", fontSize: "17px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, auto)" : "repeat(6, auto)", gap: isMobile ? "14px" : "26px", alignItems: "center", fontSize: isMobile ? "12px" : "17px" }}>
           <div>Score: <strong style={{ color: "#facc15" }}>{score}</strong></div>
-          <div>Level: <strong style={{ color: "#c084fc" }}>{level}</strong></div>
-          <div>Combo: <strong style={{ color: "#34d399" }}>{combo}</strong></div>
-          <div>Lives: <strong style={{ color: "#ef4444" }}>{"❤️".repeat(lives)}</strong></div>
-          <div>Power: <strong style={{ color: "#60a5fa" }}>{activePowerUp ? `${activePowerUp.toUpperCase()} ${powerUpTimer}s` : "None"}</strong></div>
-          <div>Best: <strong style={{ color: "#4ade80" }}>{bestScore}</strong></div>
+          <div>Lvl: <strong style={{ color: "#c084fc" }}>{level}</strong></div>
+          <div>Live: <strong style={{ color: "#ef4444" }}>{"❤️".repeat(Math.max(0, lives))}</strong></div>
         </div>
       </div>
 
